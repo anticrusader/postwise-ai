@@ -144,7 +144,7 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
     return result.response;
   } catch (error: any) {
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally (download from https://ollama.ai)');
+      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally and CORS is enabled (run: OLLAMA_ORIGINS=* ollama serve)');
     }
     throw error;
   }
@@ -174,6 +174,9 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       
       if (response.status === 404) {
         throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
+      }
+      if (response.status === 403) {
+        throw new Error('CORS error: Please run Ollama with CORS enabled (OLLAMA_ORIGINS=* ollama serve)');
       }
       throw new Error(`Failed to fetch Ollama models: ${response.status} - ${errorText}`);
     }
@@ -207,7 +210,7 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
   } catch (error: any) {
     console.error('Error in fetchOllamaModels:', error);
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally (download from https://ollama.ai)');
+      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally with CORS enabled (run: OLLAMA_ORIGINS=* ollama serve)');
     }
     throw error;
   }
