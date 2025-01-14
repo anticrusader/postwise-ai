@@ -24,13 +24,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state changed:', session);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -40,55 +46,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await signInUser(email, password);
-    
-    if (error) {
+    try {
+      const { error } = await signInUser(email, password);
+      
+      if (error) {
+        toast({
+          title: "Authentication Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+
       toast({
-        title: "Authentication Failed",
-        description: error.message,
-        variant: "destructive",
+        title: "Welcome back!",
+        description: "You've successfully signed in.",
       });
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Sign in error:', error);
       throw error;
     }
-
-    toast({
-      title: "Welcome back!",
-      description: "You've successfully signed in.",
-    });
-    navigate('/dashboard');
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await signUpUser(email, password);
-    
-    if (error) {
-      if (error.message.includes("Email already registered")) {
+    try {
+      const { error } = await signUpUser(email, password);
+      
+      if (error) {
+        if (error.message.includes("Email already registered")) {
+          toast({
+            title: "Email already registered",
+            description: "Please sign in instead.",
+            variant: "destructive",
+          });
+          navigate('/signin');
+          return;
+        }
+        
         toast({
-          title: "Email already registered",
-          description: "Please sign in instead.",
+          title: "Error signing up",
+          description: error.message,
           variant: "destructive",
         });
-        navigate('/signin');
-        return;
+        throw error;
       }
-      
+
       toast({
-        title: "Error signing up",
-        description: error.message,
-        variant: "destructive",
+        title: "Welcome!",
+        description: "Please check your email to verify your account.",
       });
+      navigate('/email-confirmation');
+    } catch (error: any) {
+      console.error('Sign up error:', error);
       throw error;
     }
-
-    toast({
-      title: "Welcome!",
-      description: "Please check your email to verify your account.",
-    });
-    navigate('/email-confirmation');
   };
 
   const signOut = async () => {
     try {
+      if (!session) {
+        console.log('No active session found during sign out');
+        toast({
+          title: "Already signed out",
+          description: "No active session found.",
+        });
+        navigate('/');
+        return;
+      }
+
       const { error } = await signOutUser();
       
       if (error) {

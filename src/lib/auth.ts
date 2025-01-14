@@ -2,7 +2,6 @@ import { supabase } from './supabase';
 
 export const signOutUser = async () => {
   try {
-    // Perform the sign out which automatically clears the session
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     
