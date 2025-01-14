@@ -117,8 +117,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      if (!session) {
+        toast({
+          title: "Already signed out",
+          description: "No active session found.",
+          variant: "destructive",
+        });
+        navigate('/signin');
+        return;
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
