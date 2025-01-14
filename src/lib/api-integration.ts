@@ -110,13 +110,12 @@ const generateWithPerplexity = async (prompt: string): Promise<string> => {
 
 const generateWithOllama = async (prompt: string): Promise<string> => {
   try {
-    const { data: urlData, error: urlError } = await supabase
+    const { data: urlData } = await supabase
       .from('secrets')
       .select('secret')
       .eq('name', 'OLLAMA_API_URL')
       .single();
 
-    // Default to ngrok URL if available, otherwise use localhost
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
     console.log('Using Ollama URL:', ollamaUrl);
 
@@ -133,8 +132,14 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error response from Ollama:', errorText);
+      const contentType = response.headers.get('content-type');
+      const responseText = await response.text();
+      console.error('Error response from Ollama:', responseText);
+      console.error('Content-Type:', contentType);
+      
+      if (contentType?.includes('text/html')) {
+        throw new Error('Received HTML response from Ollama. Please check your connection settings and make sure Ollama is running correctly.');
+      }
       
       if (response.status === 404) {
         throw new Error('Ollama server not found. Make sure Ollama is running (download from https://ollama.ai)');
@@ -142,7 +147,7 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
       if (response.status === 500) {
         throw new Error('Ollama server error. Make sure the model is downloaded (run: ollama pull llama2)');
       }
-      throw new Error(`Failed to generate content with Ollama: ${errorText}`);
+      throw new Error(`Failed to generate content with Ollama: ${responseText}`);
     }
 
     const result = await response.json();
@@ -164,7 +169,6 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       .eq('name', 'OLLAMA_API_URL')
       .single();
 
-    // Default to ngrok URL if available, otherwise use localhost
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
     console.log('Fetching from Ollama URL:', ollamaUrl);
 
@@ -174,15 +178,29 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error response from Ollama:', errorText);
+      const contentType = response.headers.get('content-type');
+      const responseText = await response.text();
+      console.error('Error response from Ollama:', responseText);
+      console.error('Content-Type:', contentType);
       
+      if (contentType?.includes('text/html')) {
+        throw new Error('Received HTML response from Ollama. Please check your connection settings and make sure Ollama is running correctly.');
+      }
+
       if (response.status === 404) {
         throw new Error('Ollama server not found. Make sure Ollama is running (download from https://ollama.ai)');
       }
-      throw new Error(`Failed to fetch Ollama models: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to fetch Ollama models: ${response.status} - ${responseText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      const responseText = await response.text();
+      console.error('Unexpected Content-Type:', contentType);
+      console.error('Response:', responseText);
+      throw new Error('Received non-JSON response from Ollama. Please check your connection settings.');
     }
 
     const data = await response.json();
