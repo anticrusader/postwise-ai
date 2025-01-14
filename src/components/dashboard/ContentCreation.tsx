@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { generateContent, postToTwitter } from "@/lib/api-integration";
+import { Wand2 } from "lucide-react";
 
 const templates = [
   {
@@ -31,11 +33,17 @@ export const ContentCreation = () => {
   const [content, setContent] = useState("");
   const [platform, setPlatform] = useState<Platform>("twitter");
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
 
   const createPost = async () => {
     try {
       setLoading(true);
+      
+      if (platform === "twitter") {
+        await postToTwitter(content);
+      }
+
       const { error } = await supabase.from("posts").insert({
         content,
         platform,
@@ -57,6 +65,27 @@ export const ContentCreation = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generatePostContent = async () => {
+    try {
+      setGenerating(true);
+      const prompt = `Generate a social media post about ${platform}. Keep it engaging and professional.`;
+      const generatedContent = await generateContent(prompt);
+      setContent(generatedContent);
+      toast({
+        title: "Content generated",
+        description: "AI-generated content has been added to your post.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error generating content",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -83,28 +112,38 @@ export const ContentCreation = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Create Content</h2>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline">Templates</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Choose a Template</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4">
-              {templates.map((template) => (
-                <Card
-                  key={template.id}
-                  className="p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() => applyTemplate(template.content)}
-                >
-                  <h3 className="font-semibold">{template.name}</h3>
-                  <p className="text-sm text-gray-500">{template.content}</p>
-                </Card>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">Templates</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Choose a Template</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                {templates.map((template) => (
+                  <Card
+                    key={template.id}
+                    className="p-4 cursor-pointer hover:bg-gray-50"
+                    onClick={() => applyTemplate(template.content)}
+                  >
+                    <h3 className="font-semibold">{template.name}</h3>
+                    <p className="text-sm text-gray-500">{template.content}</p>
+                  </Card>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button 
+            variant="outline" 
+            onClick={generatePostContent}
+            disabled={generating}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            {generating ? "Generating..." : "Generate with AI"}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
