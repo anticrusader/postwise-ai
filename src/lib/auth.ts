@@ -3,9 +3,7 @@ import { supabase } from './supabase';
 export const signOutUser = async () => {
   try {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    
-    return { error: null };
+    return { error };
   } catch (error: any) {
     console.error('Sign out error:', error);
     return { error };

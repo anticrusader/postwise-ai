@@ -105,30 +105,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Check if there's no active session before attempting to sign out
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { error } = await signOutUser();
       
-      if (!currentSession) {
-        console.log('No active session found during sign out');
-        // Clear local state
+      if (error) {
+        console.error('Sign out error:', error);
+        // Even if there's an error, we'll clear the local state and redirect
         setSession(null);
         setUser(null);
         navigate('/');
         return;
       }
 
-      const { error } = await signOutUser();
-      
-      if (error) {
-        toast({
-          title: "Error signing out",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Clear local state
       setSession(null);
       setUser(null);
       
@@ -140,11 +127,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       navigate('/');
     } catch (error: any) {
       console.error('Sign out error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while signing out.",
-        variant: "destructive",
-      });
+      // Even if there's an error, we'll clear the local state and redirect
+      setSession(null);
+      setUser(null);
+      navigate('/');
     }
   };
 
