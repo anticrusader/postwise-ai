@@ -48,15 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        // For invalid credentials error
         if (error.message.includes('Invalid login credentials')) {
           throw new Error('The email or password you entered is incorrect. Please check your credentials and try again.');
         }
-        // For email not confirmed error
         if (error.message.includes('Email not confirmed')) {
           throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
         }
-        // For any other errors
         throw new Error(error.message);
       }
 
@@ -117,23 +114,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      if (!session) {
-        toast({
-          title: "Already signed out",
-          description: "No active session found.",
-          variant: "destructive",
-        });
-        navigate('/signin');
-        return;
-      }
-
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
+
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
       });
+      
+      // Clear local state
+      setSession(null);
+      setUser(null);
+      
       navigate('/');
     } catch (error: any) {
       console.error('Sign out error:', error);
