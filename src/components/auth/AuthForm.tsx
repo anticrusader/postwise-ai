@@ -41,11 +41,17 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handlePasswordReset = async () => {
     try {
       setIsResetting(true);
+      console.log('Reset password for:', resetEmail);
+      console.log('Current origin:', window.location.origin);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Password reset error:', error);
+        throw error;
+      }
 
       toast({
         title: "Password reset email sent",
