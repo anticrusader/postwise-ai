@@ -190,6 +190,12 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       },
     });
 
+    // Handle 204 No Content response
+    if (response.status === 204) {
+      console.log('No models found (204 No Content). Please pull a model first.');
+      return [];
+    }
+
     if (!response.ok) {
       const contentType = response.headers.get('content-type');
       const responseText = await response.text();
