@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { signInUser, signUpUser, signOutUser } from '@/lib/auth';
 
 interface AuthContextType {
   session: Session | null;
@@ -23,14 +24,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -41,29 +40,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ 
-        email: email.trim(), 
-        password 
-      });
-      
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          throw new Error('The email or password you entered is incorrect. Please check your credentials and try again.');
-        }
-        if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
-        }
-        throw new Error(error.message);
-      }
-
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
-      });
-      navigate('/dashboard');
-    } catch (error: any) {
-      console.error('Authentication error:', error);
+    const { error } = await signInUser(email, password);
+    
+    if (error) {
       toast({
         title: "Authentication Failed",
         description: error.message,
@@ -71,21 +50,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       throw error;
     }
+
+    toast({
+      title: "Welcome back!",
+      description: "You've successfully signed in.",
+    });
+    navigate('/dashboard');
   };
 
   const signUp = async (email: string, password: string) => {
-    try {
-      const { error, data } = await supabase.auth.signUp({ 
-        email: email.trim(), 
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data.user?.identities?.length === 0) {
+    const { error } = await signUpUser(email, password);
+    
+    if (error) {
+      if (error.message.includes("Email already registered")) {
         toast({
           title: "Email already registered",
           description: "Please sign in instead.",
@@ -94,15 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         navigate('/signin');
         return;
       }
-
-      toast({
-        title: "Welcome!",
-        description: "Please check your email to verify your account.",
-      });
       
-      navigate('/email-confirmation');
-    } catch (error: any) {
-      console.error('Sign up error:', error);
       toast({
         title: "Error signing up",
         description: error.message,
@@ -110,31 +79,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       throw error;
     }
+
+    toast({
+      title: "Welcome!",
+      description: "Please check your email to verify your account.",
+    });
+    navigate('/email-confirmation');
   };
 
   const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      toast({
-        title: "Signed out",
-        description: "You've been successfully signed out.",
-      });
-      
-      // Clear local state
-      setSession(null);
-      setUser(null);
-      
-      navigate('/');
-    } catch (error: any) {
-      console.error('Sign out error:', error);
+    const { error } = await signOutUser();
+    
+    if (error) {
       toast({
         title: "Error signing out",
         description: error.message,
         variant: "destructive",
       });
+      return;
     }
+
+    // Clear local state
+    setSession(null);
+    setUser(null);
+    
+    toast({
+      title: "Signed out",
+      description: "You've been successfully signed out.",
+    });
+    
+    navigate('/');
   };
 
   return (
