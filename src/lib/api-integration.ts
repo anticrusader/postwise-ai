@@ -33,6 +33,9 @@ export const generateContent = async (prompt: string): Promise<string> => {
 
     if (!response.ok) {
       const error = await response.json();
+      if (response.status === 429) {
+        throw new Error('OpenAI API quota exceeded. Please check your billing details or use a different API key.');
+      }
       throw new Error(error.error?.message || 'Failed to generate content');
     }
 
