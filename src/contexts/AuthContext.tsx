@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   session: Session | null;
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Get initial session
@@ -40,12 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast({
         title: "Welcome back!",
         description: "You've successfully signed in.",
       });
+      if (data.user) {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: "Error signing in",
@@ -57,12 +62,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error, data } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
+      
+      if (data.user?.identities?.length === 0) {
+        toast({
+          title: "Email already registered",
+          description: "Please sign in instead.",
+          variant: "destructive",
+        });
+        navigate('/signin');
+        return;
+      }
+
       toast({
         title: "Welcome!",
-        description: "Please check your email to verify your account.",
+        description: "Your account has been created successfully.",
       });
+      
+      if (data.user) {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: "Error signing up",
@@ -80,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Signed out",
         description: "You've been successfully signed out.",
       });
+      navigate('/');
     } catch (error: any) {
       toast({
         title: "Error signing out",
@@ -94,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
