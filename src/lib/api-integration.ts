@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { fetchOllamaModels } from './ollama';
 
 type LLMProvider = "openai" | "perplexity" | "ollama";
 
@@ -117,24 +118,15 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
       .single();
 
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
-    console.log('Using Ollama URL:', ollamaUrl);
-
-    // First, get available models
-    const modelsResponse = await fetch(`${ollamaUrl}/api/tags`);
     
-    if (!modelsResponse.ok) {
-      throw new Error('Failed to fetch Ollama models. Please check your connection settings.');
-    }
-
-    const modelsData = await modelsResponse.json();
-    console.log('Available models:', modelsData);
-
-    if (!modelsData?.models?.length) {
+    // Get available models
+    const models = await fetchOllamaModels(ollamaUrl);
+    if (!models.length) {
       throw new Error('No Ollama models found. Please check your Ollama installation.');
     }
 
     // Use the first available model
-    const modelToUse = modelsData.models[0].name;
+    const modelToUse = models[0];
     console.log('Using model:', modelToUse);
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {

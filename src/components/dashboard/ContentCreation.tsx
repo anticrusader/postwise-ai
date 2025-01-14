@@ -8,7 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { generateContent, postToTwitter, fetchOllamaModels } from "@/lib/api-integration";
+import { generateContent, postToTwitter } from "@/lib/api-integration";
+import { fetchOllamaModels } from "@/lib/ollama";
 import { Wand2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -45,20 +46,30 @@ export const ContentCreation = () => {
 
   useEffect(() => {
     if (llmProvider === "ollama") {
-      fetchOllamaModels()
-        .then(models => {
+      const fetchModels = async () => {
+        try {
+          const { data: urlData } = await supabase
+            .from('secrets')
+            .select('secret')
+            .eq('name', 'OLLAMA_API_URL')
+            .single();
+
+          const ollamaUrl = urlData?.secret || 'http://localhost:11434';
+          const models = await fetchOllamaModels(ollamaUrl);
           setOllamaModels(models);
           if (models.length > 0) {
             setSelectedModel(models[0]);
           }
-        })
-        .catch(error => {
+        } catch (error: any) {
           toast({
             title: "Error fetching Ollama models",
             description: error.message,
             variant: "destructive",
           });
-        });
+        }
+      };
+
+      fetchModels();
     }
   }, [llmProvider, toast]);
 
@@ -140,7 +151,7 @@ export const ContentCreation = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Create Content</h2>
-        <div className="flex gap-2 items-center flex-wrap justify-end">
+        <div className="flex flex-wrap gap-2 items-center justify-end">
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline">Templates</Button>
@@ -163,7 +174,7 @@ export const ContentCreation = () => {
               </div>
             </DialogContent>
           </Dialog>
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center min-w-0">
             <Select value={llmProvider} onValueChange={(value) => setLLMProvider(value as LLMProvider)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select AI Model" />
@@ -192,7 +203,7 @@ export const ContentCreation = () => {
               variant="outline" 
               onClick={generatePostContent}
               disabled={generating || (llmProvider === "ollama" && !selectedModel)}
-              className="whitespace-nowrap"
+              className="whitespace-nowrap flex-shrink-0"
             >
               <Wand2 className="mr-2 h-4 w-4" />
               {generating ? "Generating..." : "Generate with AI"}
