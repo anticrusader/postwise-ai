@@ -1,8 +1,3 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -12,71 +7,20 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { AuthMode } from "@/types/auth";
+import { useAuthForm } from "@/hooks/useAuthForm";
 
 interface AuthFormProps {
-  mode: "signin" | "signup";
+  mode: AuthMode;
 }
 
-const formSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
 export function AuthForm({ mode }: AuthFormProps) {
-  const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  const onSubmit = async (data: FormData) => {
-    setLoading(true);
-    try {
-      if (mode === "signin") {
-        await signIn(data.email, data.password);
-      } else {
-        await signUp(data.email, data.password);
-        navigate('/email-confirmation');
-        return;
-      }
-    } catch (error: any) {
-      console.error("Authentication error:", error);
-      
-      // Check if the error is about unconfirmed email
-      if (error.message.includes("Email not confirmed")) {
-        toast({
-          title: "Email Not Confirmed",
-          description: "Please check your email and confirm your account before signing in.",
-          variant: "destructive",
-        });
-        navigate('/email-confirmation');
-      } else {
-        toast({
-          title: "Authentication Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { form, loading, onSubmit } = useAuthForm(mode);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         <FormField
           control={form.control}
           name="email"
