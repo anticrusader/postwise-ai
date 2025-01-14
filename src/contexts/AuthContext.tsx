@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
@@ -43,12 +43,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
-      });
+      
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please verify your email before signing in.');
+        } else {
+          throw error;
+        }
+      }
+
       if (data.user) {
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in.",
+        });
         navigate('/dashboard');
       }
     } catch (error: any) {
@@ -57,12 +67,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: error.message,
         variant: "destructive",
       });
+      throw error; // Re-throw to be handled by the form
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error, data } = await supabase.auth.signUp({ email, password });
+      const { error, data } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
       if (error) throw error;
       
       if (data.user?.identities?.length === 0) {
@@ -77,18 +95,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       toast({
         title: "Welcome!",
-        description: "Your account has been created successfully.",
+        description: "Please check your email to verify your account.",
       });
       
-      if (data.user) {
-        navigate('/dashboard');
-      }
+      navigate('/email-confirmation');
     } catch (error: any) {
       toast({
         title: "Error signing up",
         description: error.message,
         variant: "destructive",
       });
+      throw error;
     }
   };
 
