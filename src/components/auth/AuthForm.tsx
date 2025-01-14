@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface AuthFormProps {
   mode: "signin" | "signup";
@@ -30,6 +31,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -46,6 +48,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         await signIn(data.email, data.password);
       } else {
         await signUp(data.email, data.password);
+        navigate('/email-confirmation');
+        return;
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
@@ -57,6 +61,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           description: "Please check your email and confirm your account before signing in.",
           variant: "destructive",
         });
+        navigate('/email-confirmation');
       } else {
         toast({
           title: "Authentication Error",
