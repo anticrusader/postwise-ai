@@ -110,17 +110,7 @@ const generateWithPerplexity = async (prompt: string): Promise<string> => {
 
 const generateWithOllama = async (prompt: string): Promise<string> => {
   try {
-    const { data: ollamaUrlData, error: ollamaUrlError } = await supabase
-      .from('secrets')
-      .select('secret')
-      .eq('name', 'OLLAMA_API_URL')
-      .single();
-
-    if (ollamaUrlError) {
-      throw new Error('Ollama API URL not found. Please add it in the project settings (default: http://localhost:11434)');
-    }
-
-    const ollamaUrl = ollamaUrlData?.secret || 'http://localhost:11434';
+    const ollamaUrl = 'http://localhost:11434';
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -136,7 +126,7 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
 
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error('Ollama server not found. Make sure Ollama is running locally and the URL is correct.');
+        throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
       }
       if (response.status === 500) {
         throw new Error('Ollama server error. Make sure the model is downloaded (run: ollama pull llama2)');
