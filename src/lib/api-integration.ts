@@ -25,7 +25,7 @@ export const generateContent = async (prompt: string): Promise<string> => {
         'Authorization': `Bearer ${data.secret}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Updated to use the correct model name
+        model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 150,
       }),
