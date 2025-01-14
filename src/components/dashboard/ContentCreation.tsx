@@ -10,6 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateContent, postToTwitter } from "@/lib/api-integration";
 import { Wand2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+type LLMProvider = "openai" | "perplexity";
 
 const templates = [
   {
@@ -32,8 +36,10 @@ const templates = [
 export const ContentCreation = () => {
   const [content, setContent] = useState("");
   const [platform, setPlatform] = useState<Platform>("twitter");
+  const [llmProvider, setLLMProvider] = useState<LLMProvider>("openai");
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const createPost = async () => {
@@ -71,14 +77,16 @@ export const ContentCreation = () => {
   const generatePostContent = async () => {
     try {
       setGenerating(true);
+      setError(null);
       const prompt = `Generate a social media post about ${platform}. Keep it engaging and professional.`;
-      const generatedContent = await generateContent(prompt);
+      const generatedContent = await generateContent(prompt, llmProvider);
       setContent(generatedContent);
       toast({
         title: "Content generated",
         description: "AI-generated content has been added to your post.",
       });
     } catch (error: any) {
+      setError(error.message);
       toast({
         title: "Error generating content",
         description: error.message,
@@ -135,6 +143,15 @@ export const ContentCreation = () => {
               </div>
             </DialogContent>
           </Dialog>
+          <Select value={llmProvider} onValueChange={(value) => setLLMProvider(value as LLMProvider)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select AI Model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="openai">OpenAI GPT-4</SelectItem>
+              <SelectItem value="perplexity">Perplexity</SelectItem>
+            </SelectContent>
+          </Select>
           <Button 
             variant="outline" 
             onClick={generatePostContent}
@@ -145,6 +162,14 @@ export const ContentCreation = () => {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="space-y-4">
         <Select value={platform} onValueChange={(value) => setPlatform(value as Platform)}>
