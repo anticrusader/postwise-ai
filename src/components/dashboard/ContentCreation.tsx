@@ -13,7 +13,7 @@ import { Wand2 } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-type LLMProvider = "openai" | "perplexity";
+type LLMProvider = "openai" | "perplexity" | "ollama";
 
 const templates = [
   {
@@ -150,6 +150,7 @@ export const ContentCreation = () => {
             <SelectContent>
               <SelectItem value="openai">OpenAI GPT-4</SelectItem>
               <SelectItem value="perplexity">Perplexity</SelectItem>
+              <SelectItem value="ollama">Ollama (Local)</SelectItem>
             </SelectContent>
           </Select>
           <Button 

@@ -1,11 +1,18 @@
 import { supabase } from './supabase';
 
-export const generateContent = async (prompt: string, provider: "openai" | "perplexity" = "openai"): Promise<string> => {
+type LLMProvider = "openai" | "perplexity" | "ollama";
+
+export const generateContent = async (prompt: string, provider: LLMProvider = "openai"): Promise<string> => {
   try {
-    if (provider === "openai") {
-      return await generateWithOpenAI(prompt);
-    } else {
-      return await generateWithPerplexity(prompt);
+    switch (provider) {
+      case "openai":
+        return await generateWithOpenAI(prompt);
+      case "perplexity":
+        return await generateWithPerplexity(prompt);
+      case "ollama":
+        return await generateWithOllama(prompt);
+      default:
+        throw new Error('Unsupported LLM provider');
     }
   } catch (error: any) {
     console.error('Error generating content:', error);
@@ -99,6 +106,52 @@ const generateWithPerplexity = async (prompt: string): Promise<string> => {
 
   const result = await response.json();
   return result.choices[0].message.content;
+};
+
+const generateWithOllama = async (prompt: string): Promise<string> => {
+  try {
+    const { data: ollamaUrlData, error: ollamaUrlError } = await supabase
+      .from('secrets')
+      .select('secret')
+      .eq('name', 'OLLAMA_API_URL')
+      .single();
+
+    if (ollamaUrlError) {
+      throw new Error('Ollama API URL not found. Please add it in the project settings (default: http://localhost:11434)');
+    }
+
+    const ollamaUrl = ollamaUrlData?.secret || 'http://localhost:11434';
+
+    const response = await fetch(`${ollamaUrl}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama2',
+        prompt: prompt,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Ollama server not found. Make sure Ollama is running locally and the URL is correct.');
+      }
+      if (response.status === 500) {
+        throw new Error('Ollama server error. Make sure the model is downloaded (run: ollama pull llama2)');
+      }
+      throw new Error('Failed to generate content with Ollama');
+    }
+
+    const result = await response.json();
+    return result.response;
+  } catch (error: any) {
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally (download from https://ollama.ai)');
+    }
+    throw error;
+  }
 };
 
 export const postToTwitter = async (content: string): Promise<void> => {
