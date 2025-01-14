@@ -88,27 +88,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await signOutUser();
-    
-    if (error) {
+    try {
+      const { error } = await signOutUser();
+      
+      if (error) {
+        toast({
+          title: "Error signing out",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Clear local state
+      setSession(null);
+      setUser(null);
+      
       toast({
-        title: "Error signing out",
-        description: error.message,
+        title: "Signed out",
+        description: "You've been successfully signed out.",
+      });
+      
+      navigate('/');
+    } catch (error: any) {
+      console.error('Sign out error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while signing out.",
         variant: "destructive",
       });
-      return;
     }
-
-    // Clear local state
-    setSession(null);
-    setUser(null);
-    
-    toast({
-      title: "Signed out",
-      description: "You've been successfully signed out.",
-    });
-    
-    navigate('/');
   };
 
   return (

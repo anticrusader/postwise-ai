@@ -2,8 +2,13 @@ import { supabase } from './supabase';
 
 export const signOutUser = async () => {
   try {
+    // First clear any existing session
+    await supabase.auth.clearSession();
+    
+    // Then perform the sign out
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    
     return { error: null };
   } catch (error: any) {
     console.error('Sign out error:', error);
