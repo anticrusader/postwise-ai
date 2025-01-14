@@ -32,3 +32,8 @@ $$;
 
 -- Grant access to the function
 grant execute on function get_secret to authenticated;
+
+-- Insert JWT secret if not exists
+insert into secrets (name, secret)
+values ('SUPABASE_JWT_SECRET', gen_random_uuid()::text)
+on conflict (name) do nothing;
