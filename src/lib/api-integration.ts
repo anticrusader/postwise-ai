@@ -1,13 +1,16 @@
 import { supabase } from './supabase';
-import { Post } from './supabase';
 
 export const generateContent = async (prompt: string): Promise<string> => {
   try {
-    const { data: { secret: openaiKey } } = await supabase
+    const { data, error } = await supabase
       .rpc('get_secret', { name: 'OPENAI_API_KEY' });
 
-    if (!openaiKey) {
-      throw new Error('OpenAI API key not found');
+    if (error) {
+      throw new Error('Failed to fetch OpenAI API key. Please make sure you have added it in the project settings.');
+    }
+
+    if (!data) {
+      throw new Error('OpenAI API key not found. Please add it in the project settings.');
     }
 
     // Call OpenAI API
@@ -15,7 +18,7 @@ export const generateContent = async (prompt: string): Promise<string> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`,
+        'Authorization': `Bearer ${data}`,
       },
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
@@ -24,8 +27,13 @@ export const generateContent = async (prompt: string): Promise<string> => {
       }),
     });
 
-    const data = await response.json();
-    return data.choices[0].message.content;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to generate content');
+    }
+
+    const result = await response.json();
+    return result.choices[0].message.content;
   } catch (error: any) {
     console.error('Error generating content:', error);
     throw new Error(error.message);
@@ -34,11 +42,15 @@ export const generateContent = async (prompt: string): Promise<string> => {
 
 export const postToTwitter = async (content: string): Promise<void> => {
   try {
-    const { data: { secret: twitterKey } } = await supabase
+    const { data, error } = await supabase
       .rpc('get_secret', { name: 'TWITTER_API_KEY' });
 
-    if (!twitterKey) {
-      throw new Error('Twitter API key not found');
+    if (error) {
+      throw new Error('Failed to fetch Twitter API key. Please make sure you have added it in the project settings.');
+    }
+
+    if (!data) {
+      throw new Error('Twitter API key not found. Please add it in the project settings.');
     }
 
     // Here you would implement the Twitter API call
