@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -8,9 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { generateContent, postToTwitter } from "@/lib/api-integration";
-import { Wand2 } from "lucide-react";
-import { AlertCircle } from "lucide-react";
+import { generateContent, postToTwitter, fetchOllamaModels } from "@/lib/api-integration";
+import { Wand2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type LLMProvider = "openai" | "perplexity" | "ollama";
@@ -40,7 +39,28 @@ export const ContentCreation = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (llmProvider === "ollama") {
+      fetchOllamaModels()
+        .then(models => {
+          setOllamaModels(models);
+          if (models.length > 0) {
+            setSelectedModel(models[0]);
+          }
+        })
+        .catch(error => {
+          toast({
+            title: "Error fetching Ollama models",
+            description: error.message,
+            variant: "destructive",
+          });
+        });
+    }
+  }, [llmProvider, toast]);
 
   const createPost = async () => {
     try {
@@ -153,10 +173,24 @@ export const ContentCreation = () => {
               <SelectItem value="ollama">Ollama (Local)</SelectItem>
             </SelectContent>
           </Select>
+          {llmProvider === "ollama" && ollamaModels.length > 0 && (
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Ollama Model" />
+              </SelectTrigger>
+              <SelectContent>
+                {ollamaModels.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button 
             variant="outline" 
             onClick={generatePostContent}
-            disabled={generating}
+            disabled={generating || (llmProvider === "ollama" && !selectedModel)}
           >
             <Wand2 className="mr-2 h-4 w-4" />
             {generating ? "Generating..." : "Generate with AI"}

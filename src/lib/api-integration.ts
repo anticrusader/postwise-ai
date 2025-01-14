@@ -144,6 +144,22 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
   }
 };
 
+export const fetchOllamaModels = async (): Promise<string[]> => {
+  try {
+    const response = await fetch('http://localhost:11434/api/tags');
+    if (!response.ok) {
+      throw new Error('Failed to fetch Ollama models');
+    }
+    const data = await response.json();
+    return data.models?.map((model: { name: string }) => model.name) || [];
+  } catch (error: any) {
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally (download from https://ollama.ai)');
+    }
+    throw error;
+  }
+};
+
 export const postToTwitter = async (content: string): Promise<void> => {
   try {
     const { data, error } = await supabase
