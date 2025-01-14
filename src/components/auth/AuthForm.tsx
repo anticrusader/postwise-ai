@@ -41,11 +41,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handlePasswordReset = async () => {
     try {
       setIsResetting(true);
-      const currentOrigin = window.location.origin;
-      console.log('Current origin for password reset:', currentOrigin);
+      const siteUrl = 'https://preview--postwise-ai.lovable.app';
+      console.log('Site URL for password reset:', siteUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-        redirectTo: `${currentOrigin}/reset-password`,
+        redirectTo: `${siteUrl}/reset-password`,
       });
 
       if (error) {
