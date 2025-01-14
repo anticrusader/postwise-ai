@@ -17,7 +17,9 @@ export const fetchOllamaModels = async (ollamaUrl: string): Promise<string[]> =>
       throw new Error('Ollama service is not available. Please check if it\'s running.');
     }
 
+    console.log('Fetching models from Ollama URL:', ollamaUrl);
     const response = await fetch(`${ollamaUrl}/api/tags`);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Error response from Ollama:', errorText);
@@ -25,13 +27,28 @@ export const fetchOllamaModels = async (ollamaUrl: string): Promise<string[]> =>
     }
 
     const text = await response.text();
+    console.log('Raw Ollama response:', text);
+
     try {
       // Try to parse the response as JSON
       const data = JSON.parse(text);
+      console.log('Parsed Ollama response:', data);
       
-      // Check if the response has the expected structure
-      if (data && Array.isArray(data.models)) {
+      // Handle both possible response formats from Ollama
+      if (Array.isArray(data)) {
+        // Format: ["model1", "model2", ...]
+        return data;
+      } else if (data && Array.isArray(data.models)) {
+        // Format: { models: [{ name: "model1" }, { name: "model2" }, ...] }
         const modelNames = data.models.map((model: { name: string }) => model.name);
+        if (modelNames.length === 0) {
+          throw new Error('No models found in Ollama');
+        }
+        console.log('Available Ollama models:', modelNames);
+        return modelNames;
+      } else if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+        // Format: { "model1": {}, "model2": {}, ... }
+        const modelNames = Object.keys(data);
         if (modelNames.length === 0) {
           throw new Error('No models found in Ollama');
         }
