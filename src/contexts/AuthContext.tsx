@@ -42,32 +42,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({ 
+      const { error } = await supabase.auth.signInWithPassword({ 
         email: email.trim(), 
         password 
       });
       
       if (error) {
-        // Handle Supabase error response
-        const errorBody = error.message && JSON.parse(error.message);
-        const errorMessage = errorBody?.message || error.message;
-
-        if (errorMessage.includes('Invalid login credentials')) {
+        // For invalid credentials error
+        if (error.message.includes('Invalid login credentials')) {
           throw new Error('The email or password you entered is incorrect. Please check your credentials and try again.');
-        } else if (errorMessage.includes('Email not confirmed')) {
-          throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
-        } else {
-          throw new Error(errorMessage);
         }
+        // For email not confirmed error
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
+        }
+        // For any other errors
+        throw new Error(error.message);
       }
 
-      if (data.user) {
-        toast({
-          title: "Welcome back!",
-          description: "You've successfully signed in.",
-        });
-        navigate('/dashboard');
-      }
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully signed in.",
+      });
+      navigate('/dashboard');
     } catch (error: any) {
       console.error('Authentication error:', error);
       toast({
