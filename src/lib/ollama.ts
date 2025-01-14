@@ -18,27 +18,33 @@ export const fetchOllamaModels = async (ollamaUrl: string): Promise<string[]> =>
     }
 
     const response = await fetch(`${ollamaUrl}/api/tags`);
-    const contentType = response.headers.get('content-type');
-    
     if (!response.ok) {
-      if (contentType?.includes('text/html')) {
-        throw new Error('Invalid response from Ollama. Please check your connection settings.');
-      }
+      const errorText = await response.text();
+      console.error('Error response from Ollama:', errorText);
       throw new Error('Failed to fetch Ollama models');
     }
 
     const text = await response.text();
     try {
+      // Try to parse the response as JSON
       const data = JSON.parse(text);
+      
+      // Check if the response has the expected structure
       if (data && Array.isArray(data.models)) {
-        return data.models.map((model: { name: string }) => model.name);
+        const modelNames = data.models.map((model: { name: string }) => model.name);
+        if (modelNames.length === 0) {
+          throw new Error('No models found in Ollama');
+        }
+        console.log('Available Ollama models:', modelNames);
+        return modelNames;
+      } else {
+        console.error('Unexpected Ollama response format:', data);
+        throw new Error('Invalid response format from Ollama');
       }
-    } catch (e) {
+    } catch (parseError) {
       console.error('Failed to parse Ollama response:', text);
       throw new Error('Invalid response format from Ollama');
     }
-
-    return [];
   } catch (error: any) {
     console.error('Error in fetchOllamaModels:', error);
     throw error;
