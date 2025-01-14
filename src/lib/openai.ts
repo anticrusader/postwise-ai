@@ -19,7 +19,7 @@ export const generateContent = async (prompt: string, type: 'tweet' | 'post' | '
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
