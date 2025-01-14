@@ -183,23 +183,18 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
     console.log('Fetching from Ollama URL:', ollamaUrl);
 
-    // First, try a simple ping to verify connectivity
-    const pingResponse = await fetch(`${ollamaUrl}/api/generate`, {
-      method: 'POST',
+    // First, try to list available models
+    const modelsResponse = await fetch(`${ollamaUrl}/api/tags`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'llama2',
-        prompt: 'hi',
-        stream: false,
-      }),
     });
 
-    if (!pingResponse.ok) {
-      const contentType = pingResponse.headers.get('content-type');
-      const responseText = await pingResponse.text();
-      console.error('Error response from Ollama ping:', responseText);
+    if (!modelsResponse.ok) {
+      const contentType = modelsResponse.headers.get('content-type');
+      const responseText = await modelsResponse.text();
+      console.error('Error response from Ollama models:', responseText);
       console.error('Content-Type:', contentType);
       
       if (contentType?.includes('text/html')) {
@@ -209,18 +204,38 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
         throw new Error('Received HTML response. Please verify your Ollama connection settings.');
       }
 
-      if (pingResponse.status === 404) {
-        throw new Error('Ollama server not found. Make sure Ollama is running (download from https://ollama.ai)');
-      }
+      // If we can't get the model list, return default models that user needs to install
+      console.log('Could not fetch models, returning default list');
+      return ['llama2', 'mistral', 'codellama', 'neural-chat'];
     }
 
-    // If we can connect, return a default list of common models
-    // This is a temporary solution until we can properly fetch the model list
+    try {
+      const modelsData = await modelsResponse.json();
+      console.log('Available Ollama models:', modelsData);
+      
+      if (modelsData && Array.isArray(modelsData.models)) {
+        const availableModels = modelsData.models.map((model: { name: string }) => model.name);
+        console.log('Parsed available models:', availableModels);
+        
+        if (availableModels.length === 0) {
+          console.log('No models found, returning default list');
+          return ['llama2', 'mistral', 'codellama', 'neural-chat'];
+        }
+        
+        return availableModels;
+      }
+    } catch (parseError) {
+      console.error('Error parsing models response:', parseError);
+      return ['llama2', 'mistral', 'codellama', 'neural-chat'];
+    }
+
+    // If we get here, something unexpected happened
+    console.log('Unexpected response format, returning default list');
     return ['llama2', 'mistral', 'codellama', 'neural-chat'];
   } catch (error: any) {
     console.error('Error in fetchOllamaModels:', error);
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Could not connect to Ollama. Please check:\n1. Ollama is running\n2. Your connection settings are correct\n3. The URL in project settings is valid');
+      throw new Error('Could not connect to Ollama. Please check:\n1. Ollama is running (download from https://ollama.ai)\n2. Run "ollama pull llama2" to download the model\n3. Your connection settings are correct\n4. The URL in project settings is valid');
     }
     throw error;
   }
