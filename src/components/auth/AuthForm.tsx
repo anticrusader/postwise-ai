@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthFormProps {
   mode: "signin" | "signup";
@@ -28,6 +29,7 @@ type FormData = z.infer<typeof formSchema>;
 export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+  const { toast } = useToast();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -45,8 +47,23 @@ export function AuthForm({ mode }: AuthFormProps) {
       } else {
         await signUp(data.email, data.password);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Authentication error:", error);
+      
+      // Check if the error is about unconfirmed email
+      if (error.message.includes("Email not confirmed")) {
+        toast({
+          title: "Email Not Confirmed",
+          description: "Please check your email and confirm your account before signing in.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
