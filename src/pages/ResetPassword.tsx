@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,26 @@ import { useToast } from "@/hooks/use-toast";
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check for error parameters in the URL hash
+    const hashParams = new URLSearchParams(location.hash.substring(1));
+    const errorCode = hashParams.get("error_code");
+    const errorDescription = hashParams.get("error_description");
+
+    if (errorCode) {
+      setError(errorDescription || "An error occurred with the password reset link");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorDescription || "An error occurred with the password reset link",
+      });
+    }
+  }, [location.hash, toast]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +35,7 @@ const ResetPassword = () => {
 
     try {
       const { error } = await supabase.auth.updateUser({
-        password: newPassword
+        password: newPassword,
       });
 
       if (error) {
@@ -52,6 +70,11 @@ const ResetPassword = () => {
           <p className="mt-2 text-center text-sm text-gray-600">
             Please enter your new password below
           </p>
+          {error && (
+            <p className="mt-2 text-center text-sm text-red-600">
+              {error}
+            </p>
+          )}
         </div>
         <form className="mt-8 space-y-6" onSubmit={handlePasswordReset}>
           <div>

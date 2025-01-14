@@ -7,7 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import Index from "@/pages/Index";
 import EmailConfirmation from "@/pages/EmailConfirmation";
 import ResetPassword from "@/pages/ResetPassword";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 function App() {
   return (
