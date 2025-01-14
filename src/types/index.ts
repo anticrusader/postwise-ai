@@ -20,3 +20,11 @@ export interface Post {
   scheduled_for?: string;
   status: PostStatus;
 }
+
+export interface Analytics {
+  id: string;
+  post_id: string;
+  engagement: number;
+  reach: number;
+  date: string;
+}
