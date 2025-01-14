@@ -48,14 +48,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        console.error('Sign in error:', error);
-        // Enhanced error messages for different scenarios
-        if (error.message.includes('Invalid login credentials')) {
+        let errorMessage = error.message;
+        
+        // Parse the error message if it's a JSON string
+        try {
+          const errorBody = JSON.parse(error.message);
+          errorMessage = errorBody.message || error.message;
+        } catch {
+          // If parsing fails, use the original error message
+        }
+
+        if (errorMessage.includes('Invalid login credentials')) {
           throw new Error('The email or password you entered is incorrect. Please check your credentials and try again.');
-        } else if (error.message.includes('Email not confirmed')) {
+        } else if (errorMessage.includes('Email not confirmed')) {
           throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
         } else {
-          throw error;
+          throw new Error(errorMessage);
         }
       }
 
