@@ -41,8 +41,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handlePasswordReset = async () => {
     try {
       setIsResetting(true);
+      const currentOrigin = window.location.origin;
+      console.log('Current origin for password reset:', currentOrigin);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${currentOrigin}/reset-password`,
       });
 
       if (error) {
