@@ -12,6 +12,8 @@ import { AuthMode } from "@/types/auth";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface AuthFormProps {
   mode: AuthMode;
@@ -20,6 +22,8 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const { form, loading, onSubmit } = useAuthForm(mode);
   const { toast } = useToast();
+  const [resetEmail, setResetEmail] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleSubmit = async (data: any) => {
     try {
@@ -36,6 +40,31 @@ export function AuthForm({ mode }: AuthFormProps) {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    try {
+      setIsResetting(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password reset email sent",
+        description: "Please check your email for the password reset link.",
+      });
+      setResetEmail("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -92,6 +121,29 @@ export function AuthForm({ mode }: AuthFormProps) {
             "Sign Up"
           )}
         </Button>
+
+        {mode === "signin" && (
+          <div className="mt-4 border-t pt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Forgot your password?</h3>
+            <div className="space-y-2">
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handlePasswordReset}
+                disabled={isResetting || !resetEmail}
+              >
+                {isResetting ? "Sending Reset Link..." : "Reset Password"}
+              </Button>
+            </div>
+          </div>
+        )}
       </form>
     </Form>
   );
