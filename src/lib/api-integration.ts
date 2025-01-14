@@ -116,7 +116,9 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
       .eq('name', 'OLLAMA_API_URL')
       .single();
 
+    // Default to ngrok URL if available, otherwise use localhost
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
+    console.log('Using Ollama URL:', ollamaUrl);
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -131,20 +133,24 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response from Ollama:', errorText);
+      
       if (response.status === 404) {
-        throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
+        throw new Error('Ollama server not found. Make sure Ollama is running (download from https://ollama.ai)');
       }
       if (response.status === 500) {
         throw new Error('Ollama server error. Make sure the model is downloaded (run: ollama pull llama2)');
       }
-      throw new Error('Failed to generate content with Ollama');
+      throw new Error(`Failed to generate content with Ollama: ${errorText}`);
     }
 
     const result = await response.json();
     return result.response;
   } catch (error: any) {
+    console.error('Error in generateWithOllama:', error);
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally and CORS is enabled (run: OLLAMA_ORIGINS=* ollama serve)');
+      throw new Error('Could not connect to Ollama. Please check your connection settings and make sure Ollama is running.');
     }
     throw error;
   }
@@ -158,6 +164,7 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       .eq('name', 'OLLAMA_API_URL')
       .single();
 
+    // Default to ngrok URL if available, otherwise use localhost
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
     console.log('Fetching from Ollama URL:', ollamaUrl);
 
@@ -173,44 +180,24 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       console.error('Error response from Ollama:', errorText);
       
       if (response.status === 404) {
-        throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
-      }
-      if (response.status === 403) {
-        throw new Error('CORS error: Please run Ollama with CORS enabled (OLLAMA_ORIGINS=* ollama serve)');
+        throw new Error('Ollama server not found. Make sure Ollama is running (download from https://ollama.ai)');
       }
       throw new Error(`Failed to fetch Ollama models: ${response.status} - ${errorText}`);
     }
 
-    const contentType = response.headers.get('content-type');
-    console.log('Response Content-Type:', contentType);
+    const data = await response.json();
+    console.log('Parsed Ollama response:', data);
 
-    const rawResponse = await response.text();
-    console.log('Raw Ollama response:', rawResponse);
-
-    try {
-      const data = JSON.parse(rawResponse);
-      console.log('Parsed Ollama response:', data);
-
-      if (!data || !Array.isArray(data.models)) {
-        console.error('Unexpected response format:', data);
-        throw new Error('Unexpected response format from Ollama server');
-      }
-
-      return data.models.map((model: { name: string }) => model.name);
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.error('Raw response that failed to parse:', rawResponse);
-      
-      if (rawResponse.trim().startsWith('<')) {
-        throw new Error('Received HTML instead of JSON. Please check the Ollama server configuration.');
-      }
-      
-      throw new Error(`Failed to parse Ollama response: ${parseError.message}`);
+    if (!data || !Array.isArray(data.models)) {
+      console.error('Unexpected response format:', data);
+      throw new Error('Unexpected response format from Ollama server');
     }
+
+    return data.models.map((model: { name: string }) => model.name);
   } catch (error: any) {
     console.error('Error in fetchOllamaModels:', error);
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Could not connect to Ollama. Make sure Ollama is running locally with CORS enabled (run: OLLAMA_ORIGINS=* ollama serve)');
+      throw new Error('Could not connect to Ollama. Please check your connection settings and make sure Ollama is running.');
     }
     throw error;
   }
