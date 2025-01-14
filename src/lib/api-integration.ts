@@ -152,13 +152,14 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
 
 export const fetchOllamaModels = async (): Promise<string[]> => {
   try {
-    const { data: urlData, error: urlError } = await supabase
+    const { data: urlData } = await supabase
       .from('secrets')
       .select('secret')
       .eq('name', 'OLLAMA_API_URL')
       .single();
 
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
+    console.log('Fetching from Ollama URL:', ollamaUrl);
 
     const response = await fetch(`${ollamaUrl}/api/tags`);
     
@@ -166,17 +167,11 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       if (response.status === 404) {
         throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
       }
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch Ollama models: ${errorText}`);
+      throw new Error(`Failed to fetch Ollama models: ${response.status}`);
     }
 
-    let data;
-    try {
-      data = await response.json();
-    } catch (parseError) {
-      console.error('Raw response:', await response.text());
-      throw new Error('Invalid JSON response from Ollama server');
-    }
+    const data = await response.json();
+    console.log('Ollama response:', data);
 
     if (!data || !Array.isArray(data.models)) {
       console.error('Unexpected response format:', data);
