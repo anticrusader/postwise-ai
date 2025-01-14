@@ -2,14 +2,17 @@ import { supabase } from './supabase';
 
 export const generateContent = async (prompt: string): Promise<string> => {
   try {
-    const { data, error } = await supabase
-      .rpc('get_secret', { name: 'OPENAI_API_KEY' });
+    const { data: { secret }, error } = await supabase
+      .from('secrets')
+      .select('secret')
+      .eq('name', 'OPENAI_API_KEY')
+      .single();
 
     if (error) {
       throw new Error('Failed to fetch OpenAI API key. Please make sure you have added it in the project settings.');
     }
 
-    if (!data) {
+    if (!secret) {
       throw new Error('OpenAI API key not found. Please add it in the project settings.');
     }
 
@@ -18,10 +21,10 @@ export const generateContent = async (prompt: string): Promise<string> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${data}`,
+        'Authorization': `Bearer ${secret}`,
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 150,
       }),
@@ -42,14 +45,17 @@ export const generateContent = async (prompt: string): Promise<string> => {
 
 export const postToTwitter = async (content: string): Promise<void> => {
   try {
-    const { data, error } = await supabase
-      .rpc('get_secret', { name: 'TWITTER_API_KEY' });
+    const { data: { secret }, error } = await supabase
+      .from('secrets')
+      .select('secret')
+      .eq('name', 'TWITTER_API_KEY')
+      .single();
 
     if (error) {
       throw new Error('Failed to fetch Twitter API key. Please make sure you have added it in the project settings.');
     }
 
-    if (!data) {
+    if (!secret) {
       throw new Error('Twitter API key not found. Please add it in the project settings.');
     }
 
