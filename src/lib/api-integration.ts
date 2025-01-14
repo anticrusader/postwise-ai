@@ -161,18 +161,28 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
     console.log('Fetching from Ollama URL:', ollamaUrl);
 
-    const response = await fetch(`${ollamaUrl}/api/tags`);
-    
-    // Log the raw response for debugging
-    const rawResponse = await response.text();
-    console.log('Raw Ollama response:', rawResponse);
+    const response = await fetch(`${ollamaUrl}/api/tags`, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response from Ollama:', errorText);
+      
       if (response.status === 404) {
         throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
       }
-      throw new Error(`Failed to fetch Ollama models: ${response.status} - ${rawResponse}`);
+      throw new Error(`Failed to fetch Ollama models: ${response.status} - ${errorText}`);
     }
+
+    const contentType = response.headers.get('content-type');
+    console.log('Response Content-Type:', contentType);
+
+    const rawResponse = await response.text();
+    console.log('Raw Ollama response:', rawResponse);
 
     try {
       const data = JSON.parse(rawResponse);
@@ -187,6 +197,11 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
     } catch (parseError) {
       console.error('JSON Parse Error:', parseError);
       console.error('Raw response that failed to parse:', rawResponse);
+      
+      if (rawResponse.trim().startsWith('<')) {
+        throw new Error('Received HTML instead of JSON. Please check the Ollama server configuration.');
+      }
+      
       throw new Error(`Failed to parse Ollama response: ${parseError.message}`);
     }
   } catch (error: any) {
@@ -215,8 +230,6 @@ export const postToTwitter = async (content: string): Promise<void> => {
       throw new Error('Twitter API key not found. Please add it in the project settings.');
     }
 
-    // Here you would implement the Twitter API call
-    // For now, we'll just log the attempt
     console.log('Would post to Twitter:', content);
   } catch (error: any) {
     console.error('Error posting to Twitter:', error);
