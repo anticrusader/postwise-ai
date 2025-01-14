@@ -48,15 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        let errorMessage = error.message;
-        
-        // Parse the error message if it's a JSON string
-        try {
-          const errorBody = JSON.parse(error.message);
-          errorMessage = errorBody.message || error.message;
-        } catch {
-          // If parsing fails, use the original error message
-        }
+        // Handle Supabase error response
+        const errorBody = error.message && JSON.parse(error.message);
+        const errorMessage = errorBody?.message || error.message;
 
         if (errorMessage.includes('Invalid login credentials')) {
           throw new Error('The email or password you entered is incorrect. Please check your credentials and try again.');
