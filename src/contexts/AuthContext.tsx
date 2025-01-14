@@ -105,12 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      if (!session) {
+      // Check if there's no active session before attempting to sign out
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
         console.log('No active session found during sign out');
-        toast({
-          title: "Already signed out",
-          description: "No active session found.",
-        });
+        // Clear local state
+        setSession(null);
+        setUser(null);
         navigate('/');
         return;
       }
