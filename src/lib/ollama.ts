@@ -26,40 +26,46 @@ export const fetchOllamaModels = async (ollamaUrl: string): Promise<string[]> =>
       throw new Error('Failed to fetch Ollama models');
     }
 
+    // Get the content type to help debug response format
+    const contentType = response.headers.get('content-type');
+    console.log('Response content type:', contentType);
+
     const text = await response.text();
     console.log('Raw Ollama response:', text);
+
+    // If response is empty, return empty array
+    if (!text.trim()) {
+      console.log('Empty response from Ollama');
+      return [];
+    }
 
     try {
       // Try to parse the response as JSON
       const data = JSON.parse(text);
       console.log('Parsed Ollama response:', data);
       
-      // Handle both possible response formats from Ollama
+      // Handle different response formats
       if (Array.isArray(data)) {
         // Format: ["model1", "model2", ...]
+        console.log('Response is an array of models:', data);
         return data;
       } else if (data && Array.isArray(data.models)) {
         // Format: { models: [{ name: "model1" }, { name: "model2" }, ...] }
         const modelNames = data.models.map((model: { name: string }) => model.name);
-        if (modelNames.length === 0) {
-          throw new Error('No models found in Ollama');
-        }
-        console.log('Available Ollama models:', modelNames);
+        console.log('Response contains models array:', modelNames);
         return modelNames;
       } else if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         // Format: { "model1": {}, "model2": {}, ... }
         const modelNames = Object.keys(data);
-        if (modelNames.length === 0) {
-          throw new Error('No models found in Ollama');
-        }
-        console.log('Available Ollama models:', modelNames);
+        console.log('Response is an object with model keys:', modelNames);
         return modelNames;
-      } else {
-        console.error('Unexpected Ollama response format:', data);
-        throw new Error('Invalid response format from Ollama');
       }
+
+      console.error('Unexpected data structure:', data);
+      throw new Error('Invalid response format from Ollama');
     } catch (parseError) {
-      console.error('Failed to parse Ollama response:', text);
+      console.error('Failed to parse Ollama response:', parseError);
+      console.error('Raw response was:', text);
       throw new Error('Invalid response format from Ollama');
     }
   } catch (error: any) {
