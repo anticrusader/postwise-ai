@@ -161,12 +161,31 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
     const ollamaUrl = urlData?.secret || 'http://localhost:11434';
 
     const response = await fetch(`${ollamaUrl}/api/tags`);
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch Ollama models');
+      if (response.status === 404) {
+        throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
+      }
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch Ollama models: ${errorText}`);
     }
-    const data = await response.json();
-    return data.models?.map((model: { name: string }) => model.name) || [];
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error('Raw response:', await response.text());
+      throw new Error('Invalid JSON response from Ollama server');
+    }
+
+    if (!data || !Array.isArray(data.models)) {
+      console.error('Unexpected response format:', data);
+      throw new Error('Unexpected response format from Ollama server');
+    }
+
+    return data.models.map((model: { name: string }) => model.name);
   } catch (error: any) {
+    console.error('Error in fetchOllamaModels:', error);
     if (error.message.includes('Failed to fetch')) {
       throw new Error('Could not connect to Ollama. Make sure Ollama is running locally (download from https://ollama.ai)');
     }
