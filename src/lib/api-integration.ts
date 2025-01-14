@@ -190,12 +190,6 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       },
     });
 
-    // Handle 204 No Content response
-    if (response.status === 204) {
-      console.log('No models found (204 No Content). Please pull a model first.');
-      return [];
-    }
-
     if (!response.ok) {
       const contentType = response.headers.get('content-type');
       const responseText = await response.text();
@@ -204,9 +198,10 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       
       if (contentType?.includes('text/html')) {
         if (responseText.includes('ngrok')) {
-          throw new Error('Received ngrok authentication page. Please make sure your ngrok tunnel is properly configured and accessible.');
+          console.error('Received ngrok authentication page');
+          throw new Error('Received ngrok authentication page. Please check your ngrok configuration and make sure the tunnel is accessible.');
         }
-        throw new Error('Received HTML response from Ollama. Please check your connection settings and make sure Ollama is running correctly.');
+        throw new Error('Received HTML response from Ollama. Please check your connection settings.');
       }
 
       if (response.status === 404) {
