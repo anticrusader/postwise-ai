@@ -42,9 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ 
+        email: email.trim(), 
+        password 
+      });
       
       if (error) {
+        console.error('Sign in error:', error);
         if (error.message.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password. Please try again.');
         } else if (error.message.includes('Email not confirmed')) {
@@ -62,19 +66,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         navigate('/dashboard');
       }
     } catch (error: any) {
+      console.error('Authentication error:', error);
       toast({
         title: "Error signing in",
         description: error.message,
         variant: "destructive",
       });
-      throw error; // Re-throw to be handled by the form
+      throw error;
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
       const { error, data } = await supabase.auth.signUp({ 
-        email, 
+        email: email.trim(), 
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`
@@ -100,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       navigate('/email-confirmation');
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
         title: "Error signing up",
         description: error.message,
@@ -119,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       navigate('/');
     } catch (error: any) {
+      console.error('Sign out error:', error);
       toast({
         title: "Error signing out",
         description: error.message,

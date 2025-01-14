@@ -28,13 +28,8 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handleSubmit = async (data: any) => {
     try {
       await onSubmit(data);
-      toast({
-        title: mode === "signin" ? "Welcome back!" : "Account created",
-        description: mode === "signin" 
-          ? "You have successfully signed in." 
-          : "Please check your email to verify your account.",
-      });
     } catch (error: any) {
+      console.error('Form submission error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -46,7 +41,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handlePasswordReset = async () => {
     try {
       setIsResetting(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
@@ -58,6 +53,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       });
       setResetEmail("");
     } catch (error: any) {
+      console.error('Password reset error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -83,6 +79,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   type="email" 
                   {...field} 
                   disabled={loading}
+                  onChange={(e) => field.onChange(e.target.value.trim())}
                 />
               </FormControl>
               <FormMessage />
@@ -130,7 +127,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 type="email"
                 placeholder="Enter your email"
                 value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
+                onChange={(e) => setResetEmail(e.target.value.trim())}
               />
               <Button
                 type="button"
