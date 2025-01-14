@@ -42,10 +42,13 @@ export function AuthForm({ mode }: AuthFormProps) {
     try {
       setIsResetting(true);
       console.log('Reset password for:', resetEmail);
-      console.log('Current origin:', window.location.origin);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const projectURL = (user?.app_metadata?.provider as string) || window.location.origin;
+      console.log('Using project URL:', projectURL);
       
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${projectURL}/reset-password`,
       });
 
       if (error) {
