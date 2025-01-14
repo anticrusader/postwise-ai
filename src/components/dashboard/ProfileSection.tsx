@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -10,9 +10,35 @@ export const ProfileSection = () => {
   const { toast } = useToast();
   const [fullName, setFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  useEffect(() => {
+    const getProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user?.id)
+          .single();
+
+        if (error) throw error;
+        if (data) setFullName(data.full_name || "");
+      } catch (error: any) {
+        toast({
+          title: "Error loading profile",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (user?.id) {
+      getProfile();
+    }
+  }, [user?.id, toast]);
 
   const updateProfile = async () => {
     try {
@@ -40,6 +66,15 @@ export const ProfileSection = () => {
   };
 
   const changePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setPasswordLoading(true);
       const { error } = await supabase.auth.updateUser({
@@ -53,6 +88,7 @@ export const ProfileSection = () => {
         description: "Your password has been changed successfully.",
       });
       setNewPassword("");
+      setConfirmPassword("");
       setCurrentPassword("");
     } catch (error: any) {
       toast({
@@ -106,9 +142,18 @@ export const ProfileSection = () => {
                 placeholder="Enter new password"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
             <Button 
               onClick={changePassword} 
-              disabled={passwordLoading || !newPassword || !currentPassword}
+              disabled={passwordLoading || !newPassword || !currentPassword || !confirmPassword}
             >
               {passwordLoading ? "Changing Password..." : "Change Password"}
             </Button>
