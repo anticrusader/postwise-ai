@@ -110,7 +110,13 @@ const generateWithPerplexity = async (prompt: string): Promise<string> => {
 
 const generateWithOllama = async (prompt: string): Promise<string> => {
   try {
-    const ollamaUrl = 'http://localhost:11434';
+    const { data: urlData, error: urlError } = await supabase
+      .from('secrets')
+      .select('secret')
+      .eq('name', 'OLLAMA_API_URL')
+      .single();
+
+    const ollamaUrl = urlData?.secret || 'http://localhost:11434';
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -146,7 +152,15 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
 
 export const fetchOllamaModels = async (): Promise<string[]> => {
   try {
-    const response = await fetch('http://localhost:11434/api/tags');
+    const { data: urlData, error: urlError } = await supabase
+      .from('secrets')
+      .select('secret')
+      .eq('name', 'OLLAMA_API_URL')
+      .single();
+
+    const ollamaUrl = urlData?.secret || 'http://localhost:11434';
+
+    const response = await fetch(`${ollamaUrl}/api/tags`);
     if (!response.ok) {
       throw new Error('Failed to fetch Ollama models');
     }
