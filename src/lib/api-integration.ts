@@ -163,22 +163,32 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
 
     const response = await fetch(`${ollamaUrl}/api/tags`);
     
+    // Log the raw response for debugging
+    const rawResponse = await response.text();
+    console.log('Raw Ollama response:', rawResponse);
+    
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error('Ollama server not found. Make sure Ollama is running locally (download from https://ollama.ai)');
       }
-      throw new Error(`Failed to fetch Ollama models: ${response.status}`);
+      throw new Error(`Failed to fetch Ollama models: ${response.status} - ${rawResponse}`);
     }
 
-    const data = await response.json();
-    console.log('Ollama response:', data);
+    try {
+      const data = JSON.parse(rawResponse);
+      console.log('Parsed Ollama response:', data);
 
-    if (!data || !Array.isArray(data.models)) {
-      console.error('Unexpected response format:', data);
-      throw new Error('Unexpected response format from Ollama server');
+      if (!data || !Array.isArray(data.models)) {
+        console.error('Unexpected response format:', data);
+        throw new Error('Unexpected response format from Ollama server');
+      }
+
+      return data.models.map((model: { name: string }) => model.name);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.error('Raw response that failed to parse:', rawResponse);
+      throw new Error(`Failed to parse Ollama response: ${parseError.message}`);
     }
-
-    return data.models.map((model: { name: string }) => model.name);
   } catch (error: any) {
     console.error('Error in fetchOllamaModels:', error);
     if (error.message.includes('Failed to fetch')) {
