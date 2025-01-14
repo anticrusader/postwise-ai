@@ -4,6 +4,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Platform } from "@/types";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const templates = [
+  {
+    id: 1,
+    name: "Announcement",
+    content: "🎉 Exciting news! We're thrilled to announce...",
+  },
+  {
+    id: 2,
+    name: "Tip",
+    content: "💡 Pro tip: Here's how you can...",
+  },
+  {
+    id: 3,
+    name: "Question",
+    content: "🤔 What do you think about...?",
+  },
+];
 
 export const ContentCreation = () => {
   const [content, setContent] = useState("");
@@ -38,28 +60,86 @@ export const ContentCreation = () => {
     }
   };
 
+  const applyTemplate = (templateContent: string) => {
+    setContent(templateContent);
+  };
+
+  const PreviewCard = ({ content }: { content: string }) => (
+    <Card className="p-4 max-w-md mx-auto">
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <div className="w-10 h-10 bg-gray-200 rounded-full" />
+          <div>
+            <p className="font-semibold">Your Name</p>
+            <p className="text-sm text-gray-500">@yourhandle</p>
+          </div>
+        </div>
+        <p className="text-gray-900">{content}</p>
+      </div>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Create Content</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Create Content</h2>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline">Templates</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Choose a Template</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4">
+              {templates.map((template) => (
+                <Card
+                  key={template.id}
+                  className="p-4 cursor-pointer hover:bg-gray-50"
+                  onClick={() => applyTemplate(template.content)}
+                >
+                  <h3 className="font-semibold">{template.name}</h3>
+                  <p className="text-sm text-gray-500">{template.content}</p>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <div className="space-y-4">
-        <select
-          className="w-full p-2 border rounded"
-          value={platform}
-          onChange={(e) => setPlatform(e.target.value as Platform)}
-        >
-          <option value="twitter">Twitter</option>
-          <option value="linkedin">LinkedIn</option>
-          <option value="instagram">Instagram</option>
-        </select>
+        <Select value={platform} onValueChange={(value) => setPlatform(value as Platform)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select platform" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="twitter">Twitter</SelectItem>
+            <SelectItem value="linkedin">LinkedIn</SelectItem>
+            <SelectItem value="instagram">Instagram</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write your post content..."
           className="min-h-[200px]"
         />
-        <Button onClick={createPost} disabled={loading || !content}>
-          {loading ? "Creating..." : "Create Post"}
-        </Button>
+
+        <Tabs defaultValue="edit">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="edit">Edit</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
+          <TabsContent value="edit">
+            <Button onClick={createPost} disabled={loading || !content} className="w-full">
+              {loading ? "Creating..." : "Create Post"}
+            </Button>
+          </TabsContent>
+          <TabsContent value="preview">
+            <PreviewCard content={content} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
