@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AuthMode } from "@/types/auth";
 import { useAuthForm } from "@/hooks/useAuthForm";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthFormProps {
   mode: AuthMode;
@@ -17,10 +19,29 @@ interface AuthFormProps {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const { form, loading, onSubmit } = useAuthForm(mode);
+  const { toast } = useToast();
+
+  const handleSubmit = async (data: any) => {
+    try {
+      await onSubmit(data);
+      toast({
+        title: mode === "signin" ? "Welcome back!" : "Account created",
+        description: mode === "signin" 
+          ? "You have successfully signed in." 
+          : "Please check your email to verify your account.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="email"
@@ -28,7 +49,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="email@example.com" type="email" {...field} />
+                <Input 
+                  placeholder="email@example.com" 
+                  type="email" 
+                  {...field} 
+                  disabled={loading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -41,7 +67,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input placeholder="••••••••" type="password" {...field} />
+                <Input 
+                  placeholder="••••••••" 
+                  type="password" 
+                  {...field} 
+                  disabled={loading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -49,7 +80,12 @@ export function AuthForm({ mode }: AuthFormProps) {
         />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? (
-            "Loading..."
+            <>
+              <LoadingSpinner />
+              <span className="ml-2">
+                {mode === "signin" ? "Signing in..." : "Creating account..."}
+              </span>
+            </>
           ) : mode === "signin" ? (
             "Sign In"
           ) : (
