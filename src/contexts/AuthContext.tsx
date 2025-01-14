@@ -49,10 +49,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error('Sign in error:', error);
+        // Enhanced error messages for different scenarios
         if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password. Please try again.');
+          throw new Error('The email or password you entered is incorrect. Please check your credentials and try again.');
         } else if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please verify your email before signing in.');
+          throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
         } else {
           throw error;
         }
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error('Authentication error:', error);
       toast({
-        title: "Error signing in",
+        title: "Authentication Failed",
         description: error.message,
         variant: "destructive",
       });
