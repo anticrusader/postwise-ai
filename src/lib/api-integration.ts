@@ -138,6 +138,9 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
       console.error('Content-Type:', contentType);
       
       if (contentType?.includes('text/html')) {
+        if (responseText.includes('ngrok')) {
+          throw new Error('Received ngrok authentication page. Please make sure your ngrok tunnel is properly configured and accessible.');
+        }
         throw new Error('Received HTML response from Ollama. Please check your connection settings and make sure Ollama is running correctly.');
       }
       
@@ -148,6 +151,14 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
         throw new Error('Ollama server error. Make sure the model is downloaded (run: ollama pull llama2)');
       }
       throw new Error(`Failed to generate content with Ollama: ${responseText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      const responseText = await response.text();
+      console.error('Unexpected Content-Type:', contentType);
+      console.error('Response:', responseText);
+      throw new Error('Received non-JSON response from Ollama. Please check your connection settings.');
     }
 
     const result = await response.json();
@@ -186,6 +197,9 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       console.error('Content-Type:', contentType);
       
       if (contentType?.includes('text/html')) {
+        if (responseText.includes('ngrok')) {
+          throw new Error('Received ngrok authentication page. Please make sure your ngrok tunnel is properly configured and accessible.');
+        }
         throw new Error('Received HTML response from Ollama. Please check your connection settings and make sure Ollama is running correctly.');
       }
 
@@ -200,6 +214,9 @@ export const fetchOllamaModels = async (): Promise<string[]> => {
       const responseText = await response.text();
       console.error('Unexpected Content-Type:', contentType);
       console.error('Response:', responseText);
+      if (responseText.includes('ngrok')) {
+        throw new Error('Received ngrok authentication page. Please make sure your ngrok tunnel is properly configured and accessible.');
+      }
       throw new Error('Received non-JSON response from Ollama. Please check your connection settings.');
     }
 
