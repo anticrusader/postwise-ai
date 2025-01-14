@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,16 +18,19 @@ interface AuthFormProps {
   mode: "signin" | "signup";
 }
 
-interface FormData {
-  email: string;
-  password: string;
-}
+const formSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   
   const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -40,6 +45,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       } else {
         await signUp(data.email, data.password);
       }
+    } catch (error) {
+      console.error("Authentication error:", error);
     } finally {
       setLoading(false);
     }
