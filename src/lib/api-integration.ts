@@ -120,28 +120,22 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
     console.log('Using Ollama URL:', ollamaUrl);
 
     // First, get available models
-    const modelsResponse = await fetch(`${ollamaUrl}/api/tags`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    let modelToUse = 'llama2'; // default fallback
+    const modelsResponse = await fetch(`${ollamaUrl}/api/tags`);
     
-    if (modelsResponse.ok) {
-      const modelsData = await modelsResponse.json();
-      console.log('Available models:', modelsData);
-      
-      if (modelsData && Array.isArray(modelsData.models) && modelsData.models.length > 0) {
-        modelToUse = modelsData.models[0].name;
-        console.log('Using first available model:', modelToUse);
-      } else {
-        console.log('No models found, using default:', modelToUse);
-      }
-    } else {
-      console.log('Could not fetch models, using default:', modelToUse);
+    if (!modelsResponse.ok) {
+      throw new Error('Failed to fetch Ollama models. Please check your connection settings.');
     }
+
+    const modelsData = await modelsResponse.json();
+    console.log('Available models:', modelsData);
+
+    if (!modelsData?.models?.length) {
+      throw new Error('No Ollama models found. Please check your Ollama installation.');
+    }
+
+    // Use the first available model
+    const modelToUse = modelsData.models[0].name;
+    console.log('Using model:', modelToUse);
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -156,25 +150,9 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
     });
 
     if (!response.ok) {
-      const contentType = response.headers.get('content-type');
-      const responseText = await response.text();
-      console.error('Error response from Ollama:', responseText);
-      console.error('Content-Type:', contentType);
-      
-      if (contentType?.includes('text/html')) {
-        if (responseText.includes('ngrok')) {
-          throw new Error('Received ngrok authentication page. Please make sure your ngrok tunnel is properly configured and accessible.');
-        }
-        throw new Error('Received HTML response from Ollama. Please check your connection settings and make sure Ollama is running correctly.');
-      }
-      
-      if (response.status === 404) {
-        throw new Error(`Model '${modelToUse}' not found. Please run: ollama pull ${modelToUse}`);
-      }
-      if (response.status === 500) {
-        throw new Error(`Ollama server error with model '${modelToUse}'. Try running: ollama pull ${modelToUse}`);
-      }
-      throw new Error(`Failed to generate content with Ollama: ${responseText}`);
+      const errorText = await response.text();
+      console.error('Error response from Ollama:', errorText);
+      throw new Error(`Failed to generate content with Ollama: ${errorText}`);
     }
 
     const result = await response.json();
@@ -182,7 +160,7 @@ const generateWithOllama = async (prompt: string): Promise<string> => {
   } catch (error: any) {
     console.error('Error in generateWithOllama:', error);
     if (error.message.includes('Failed to fetch')) {
-      throw new Error('Could not connect to Ollama. Please check:\n1. Ollama is running (download from https://ollama.ai)\n2. Your connection settings are correct\n3. The URL in project settings is valid');
+      throw new Error('Could not connect to Ollama. Please check:\n1. Ollama is running\n2. Your connection settings are correct\n3. The URL in project settings is valid');
     }
     throw error;
   }

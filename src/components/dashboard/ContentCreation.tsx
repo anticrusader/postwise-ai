@@ -140,7 +140,7 @@ export const ContentCreation = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Create Content</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap justify-end">
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline">Templates</Button>
@@ -163,38 +163,41 @@ export const ContentCreation = () => {
               </div>
             </DialogContent>
           </Dialog>
-          <Select value={llmProvider} onValueChange={(value) => setLLMProvider(value as LLMProvider)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select AI Model" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="openai">OpenAI GPT-4</SelectItem>
-              <SelectItem value="perplexity">Perplexity</SelectItem>
-              <SelectItem value="ollama">Ollama (Local)</SelectItem>
-            </SelectContent>
-          </Select>
-          {llmProvider === "ollama" && ollamaModels.length > 0 && (
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
+          <div className="flex gap-2 items-center">
+            <Select value={llmProvider} onValueChange={(value) => setLLMProvider(value as LLMProvider)}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select Ollama Model" />
+                <SelectValue placeholder="Select AI Model" />
               </SelectTrigger>
               <SelectContent>
-                {ollamaModels.map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
+                <SelectItem value="openai">OpenAI GPT-4</SelectItem>
+                <SelectItem value="perplexity">Perplexity</SelectItem>
+                <SelectItem value="ollama">Ollama (Local)</SelectItem>
               </SelectContent>
             </Select>
-          )}
-          <Button 
-            variant="outline" 
-            onClick={generatePostContent}
-            disabled={generating || (llmProvider === "ollama" && !selectedModel)}
-          >
-            <Wand2 className="mr-2 h-4 w-4" />
-            {generating ? "Generating..." : "Generate with AI"}
-          </Button>
+            {llmProvider === "ollama" && ollamaModels.length > 0 && (
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Ollama Model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ollamaModels.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button 
+              variant="outline" 
+              onClick={generatePostContent}
+              disabled={generating || (llmProvider === "ollama" && !selectedModel)}
+              className="whitespace-nowrap"
+            >
+              <Wand2 className="mr-2 h-4 w-4" />
+              {generating ? "Generating..." : "Generate with AI"}
+            </Button>
+          </div>
         </div>
       </div>
 
